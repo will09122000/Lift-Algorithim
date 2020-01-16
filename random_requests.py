@@ -3,12 +3,12 @@ import random
 import json
 from threading import Timer, Event
 
-def generate_random_requests(number_of_floors):
+def generate_random_requests(floors):
     global request_number
-    floor_from = random.randrange(0, number_of_floors)
-    floor_to = random.randrange(0, number_of_floors)
+    floor_from = random.randrange(0, floors)
+    floor_to = random.randrange(0, floors)
     while floor_to == floor_from:
-        floor_to = random.randrange(0, number_of_floors)
+        floor_to = random.randrange(0, floors)
     if (floor_from - floor_to) < 0:
         direction = 'up'
     else:
@@ -25,7 +25,7 @@ def generate_random_requests(number_of_floors):
     request_number += 1
     
     #print(json.dumps(requests, indent=1))
-    Timer(random.randrange(0, 10), generate_random_requests, args=[number_of_floors]).start()
+    Timer(random.randrange(0, 10), generate_random_requests, args=[floors]).start()
 
 
 requests = {}
@@ -72,4 +72,4 @@ while True:
     print(floor)
 """
 
-generate_random_requests(floors)
+#generate_random_requests(floors)
