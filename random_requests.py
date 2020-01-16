@@ -25,13 +25,12 @@ def generate_random_requests(number_of_floors):
     request_number += 1
     
     #print(json.dumps(requests, indent=1))
-
     Timer(random.randrange(0, 10), generate_random_requests, args=[number_of_floors]).start()
 
 
 requests = {}
 request_number = 0
-number_of_floors = 5
+floors = 5
 lift_capacity = 6
 floor = 0
 direction = 'up'
@@ -41,8 +40,8 @@ requests_served = {}
 #done = Event()
 #Timer(random.randrange(0, 10), generate_random_requests, args=[number_of_floors]).start()
 #done.set()
-generate_random_requests(number_of_floors)
-
+#generate_random_requests(number_of_floors)
+"""
 while True:
     if floor == 0:
         direction = 'up'
@@ -71,3 +70,6 @@ while True:
     print(requests_served)
     time.sleep(1)
     print(floor)
+"""
+
+generate_random_requests(floors)
