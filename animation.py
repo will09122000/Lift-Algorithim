@@ -2,6 +2,7 @@ import pygame
 import time
 import random
 import json
+import numpy as np
 from threading import Timer, Event
 
 pygame.init()
@@ -49,14 +50,14 @@ def generate_random_requests(floors):
     requests_on_floor[floor_from].append(request['direction'])
     
     #print(json.dumps(requests, indent=1))
-    Timer(random.randrange(0, 3), generate_random_requests, args=[floors]).start()
+    Timer(random.randrange(0, 2), generate_random_requests, args=[floors]).start()
 
-floors = 4
+floors = 5
 current_floor = 0
 floors_visited = 0
 
-lift_width = 100
-lift_height = 150
+lift_width = 220
+lift_height = 100
 lift_pos_x = 0
 lift_pos_y = display_height - lift_height - 10
 lift_speed = 3
@@ -75,10 +76,10 @@ for i in range(floors):
 gameExit = False
 
 generate_random_requests(floors)
-yeet=0
+
 while not gameExit:
-    yeet += 1
-    #print(yeet, current_floor, direction, requests_on_floor, lift_capacity, lift_volume)
+
+    #print(current_floor, direction, requests_on_floor, lift_capacity, lift_volume)
     
     #print(lift_volume)
     for event in pygame.event.get():
@@ -99,7 +100,7 @@ while not gameExit:
             else:
                 window.blit(stickman_down_scaled, (lift_pos_x + lift_width + 10 + floor_spacing, display_height - int(floor[0]) * floor_height - stickman_down_scaled.get_rect().size[1] - 10))
             floor_spacing += 35
-        
+
     lift_spacing = 0
     for request in list(lift_volume):
         if lift_volume[request]['direction'] == 'up':
@@ -107,11 +108,12 @@ while not gameExit:
         else:
             window.blit(stickman_down_scaled, (lift_pos_x + lift_spacing, lift_pos_y + lift_height - stickman_scaled.get_rect().size[1]))
         lift_spacing += 35
-        #print(yeet, lift_volume)
 
 
     pygame.draw.rect(window, white, [lift_pos_x + lift_width, 0, 10, display_height])
     pygame.draw.rect(window, white, [lift_pos_x, lift_pos_y, lift_width, lift_height], 10)
+    pygame.draw.line(window, white, (lift_width / 2, 0), (lift_width / 2, lift_pos_y), 3)
+
 
     lift_pos_y += lift_speed
 
@@ -151,9 +153,15 @@ while not gameExit:
         direction = 'down'
     
     for request in list(requests):
-        if requests[request]['floor_from'] == current_floor and requests[request]['direction'] == direction: #and lift_capacity < 7:
-            lift_volume[request_number] = requests[request]
-            del requests_on_floor[int(requests[request]['floor_from'])][-1]
+        if requests[request]['floor_from'] == current_floor and requests[request]['direction'] == direction and lift_capacity < 6:
+            key_list = list(requests.keys()) 
+            val_list = list(requests.values()) 
+            lift_volume[key_list[val_list.index(requests[request])]] = requests[request]
+            if direction == 'up':
+                requests_on_floor[int(requests[request]['floor_from'])].remove('up')
+            else:
+                requests_on_floor[int(requests[request]['floor_from'])].remove('down')
+            
             del requests[request]
             lift_capacity += 1
 
@@ -163,9 +171,7 @@ while not gameExit:
             del lift_volume[request]
             lift_capacity -= 1
 
-
-
-    #time.sleep(0.1)
+    time.sleep(0.01)
 
 
 pygame.quit()
