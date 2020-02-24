@@ -14,18 +14,17 @@ COLOR_MENU_BACKGROUND = (128, 128, 128)
 COLOUR_MENU_TITLE = (238, 154, 23)
 COLOUR_RED = (255, 51, 51)
 
+# Window setup
 WINDOW_SIZE = (850, 1000)
-Algorithm = ['IMPROVED']
+Algorithm = ['BASE']
 FPS = 60.0
 clock = None
 main_menu = None
 surface = None
 pygame.init()
 
-stickman = pygame.image.load('stickman.png')
 stickman_up = pygame.image.load('stickman_up.png')
 stickman_down = pygame.image.load('stickman_down.png')
-stickman_scaled = pygame.transform.scale(stickman, (40, 80))
 stickman_up_scaled = pygame.transform.scale(stickman_up, (40, 80))
 stickman_down_scaled = pygame.transform.scale(stickman_down, (40, 80))
 large_font = pygame.font.Font(pygameMenu.font.FONT_BEBAS, 30)
@@ -35,12 +34,19 @@ lift_height = 100
 lift_pos_x = 0
 
 def load_config():
+    """
+    Load simulation configuration from config.json
+    return: None
+    """
     global floors
     global spawn_rate
+    global lift_speed
+
     with open('config.json', 'r') as config_file:
         config = json.load(config_file)
     floors = config['floors']
     spawn_rate = config['spawn_rate']
+    lift_speed = config['lift_speed']
 
     if spawn_rate == 1:
         spawn_rate = 6
@@ -54,10 +60,18 @@ def load_config():
         spawn_rate = 2
 
 def change_algorithm(value, algorithm):
+    """
+    Change the algorithm for the simulation to run
+    return: None
+    """
     selected, index = value
     Algorithm[0] = algorithm
 
 def change_floors(value, new_floors):
+    """
+    Change the total number of floors on the simulation
+    return: Load config function
+    """
     with open('config.json', 'r') as config_file:
         config = json.load(config_file)
 
@@ -68,6 +82,10 @@ def change_floors(value, new_floors):
     return load_config()
 
 def change_spawn_rate(value, new_spawn_rate):
+    """
+    Change the rate at which requests are spawned
+    return: Load config function
+    """
     with open('config.json', 'r') as config_file:
         config = json.load(config_file)
 
@@ -77,7 +95,25 @@ def change_spawn_rate(value, new_spawn_rate):
         json.dump(config, config_file, indent=2)
     return load_config()
 
+def change_lift_speed(value, new_lift_speed):
+    """
+    Change the speed of the lift.
+    return: Load config function
+    """
+    with open('config.json', 'r') as config_file:
+        config = json.load(config_file)
+
+    config['lift_speed'] = new_lift_speed
+
+    with open('config.json', 'w') as config_file:
+        json.dump(config, config_file, indent=2)
+    return load_config()
+
 def algorithm_selector():
+    """
+    Runs specific algorithm dependent on the value of Algorithm[0]
+    return: Algorithm function
+    """
     if Algorithm[0] == 'BASE':
         return base_algorithm_run()
     else:
@@ -85,21 +121,31 @@ def algorithm_selector():
 
 def main_background():
     """
-    Function used by menus, draw on background while menu is active.
-    :return: None
+    Function used by menus to fill the background with colour
+    return: None
     """
     global surface
     surface.fill(COLOUR_BACKGROUND)
 
 def generate_random_requests(floors, spawn_rate):
+    """
+    Function responsible for generating random requests. Each request
+    is from a random floor, a random direction and a random destination
+    floor. The rate at which the requests are spawned is random using a
+    timer with a range of integers from 0 to the spawn rate. So the lower
+    the spawn rate integer the higher rate of requests are spawned on
+    average.
+    """
     global sim_exit
     global request_number
     global requests
     floor_from = random.randrange(floors)
     floor_to = random.randrange(floors)
 
+    # Prevent the two floors being the same.
     while floor_to == floor_from:
         floor_to = random.randrange(floors)
+    
     if (floor_from - floor_to) < 0:
         direction = 'up'
     else:
@@ -122,55 +168,65 @@ def generate_random_requests(floors, spawn_rate):
         Timer(random.randrange(0, spawn_rate), generate_random_requests, args=[floors, spawn_rate]).start()
 
 def base_algorithm_run():
+    """
+    The basic algorithm wherby the lift starts from the bottom floor and
+    continually travels to the top floor and back down to the ground
+    floor, picking up requests if they are heading the same direction as
+    the lift and the lift is not full.
+    """
 
     global sim_exit
     global requests
     global request_number
     global requests_each_floor
+    global floors
+    global spawn_rate
+    global lift_speed
 
     main_menu.disable()
     main_menu.reset(1)
 
+    # Window configuration.
     running = True
     sim_exit = True
     pygame.init()
-
+    clock = pygame.time.Clock()
     window = pygame.display.set_mode((WINDOW_SIZE[0],WINDOW_SIZE[1]))
     pygame.display.set_caption('Lift Algorithm')
     
-    clock = pygame.time.Clock()
-
     lift_pos_y = WINDOW_SIZE[1] - lift_height - 10
-    lift_speed = 10
     lift_capacity = 0
-
     requests = {}
     requests_served = {}
     request_number = 0
     direction = 'up'
     lift_volume = {}
-
     current_floor = 0
     floors_visited = 0
 
+    # Creates a list of floors which will be used when displaying the
+    # stickmen as they are waiting on a floor.
     requests_each_floor = []
     for i in range(floors):
         requests_each_floor.append([i])
 
+    # Starts the spawning of requests on a new thread.
     Timer(random.randrange(0, spawn_rate), generate_random_requests, args=[floors, spawn_rate]).start()
 
+    # Main loop
     while sim_exit:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
 
+            # Exiting simulation with escape key.
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE and main_menu.is_disabled():
                     sim_exit = False
                     main_menu.enable()
-                    # Quit this function, then skip to loop of main-menu on line 317
                     return
+            # Exiting simulation with quit button.
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if mouse_pos[0] > WINDOW_SIZE[0] - 110 and mouse_pos[0] < WINDOW_SIZE[0] - 10:
                     if mouse_pos[1] > WINDOW_SIZE[1] - 60 and mouse_pos[1] < WINDOW_SIZE[1] - 10:
@@ -202,9 +258,9 @@ def base_algorithm_run():
         lift_spacing = 0
         for request in list(lift_volume):
             if lift_volume[request]['direction'] == 'up':
-                window.blit(stickman_up_scaled, (lift_pos_x + lift_spacing, lift_pos_y + lift_height - stickman_scaled.get_rect().size[1]))
+                window.blit(stickman_up_scaled, (lift_pos_x + lift_spacing, lift_pos_y + lift_height - stickman_up_scaled.get_rect().size[1]))
             else:
-                window.blit(stickman_down_scaled, (lift_pos_x + lift_spacing, lift_pos_y + lift_height - stickman_scaled.get_rect().size[1]))
+                window.blit(stickman_down_scaled, (lift_pos_x + lift_spacing, lift_pos_y + lift_height - stickman_down_scaled.get_rect().size[1]))
             lift_spacing += 35
 
         pygame.draw.rect(window, COLOUR_MENU_TITLE, [lift_width + (lift_pos_x + lift_width) * 1.5, 0, WINDOW_SIZE[0] - lift_width + (lift_pos_x + lift_width), 150])
@@ -245,7 +301,7 @@ def base_algorithm_run():
             lift_speed = lift_speed * -1
 
         for floor in range(floors):
-            if (lift_pos_y + lift_height) < WINDOW_SIZE[1] - int(floor * floor_height) + 30 and (lift_pos_y + lift_height) > WINDOW_SIZE[1] - int(floor * floor_height) - 10 - 30:
+            if (lift_pos_y + lift_height) < WINDOW_SIZE[1] - int(floor * floor_height) + 20 and (lift_pos_y + lift_height) > WINDOW_SIZE[1] - int(floor * floor_height) - 10 - 20:
                 current_floor = floor
             elif current_floor == floor:
                 current_floor = None
@@ -286,6 +342,9 @@ def improved_algorithm_run():
     global requests
     global request_number
     global requests_each_floor
+    global floors
+    global spawn_rate
+    global lift_speed
 
     main_menu.disable()
     main_menu.reset(1)
@@ -299,8 +358,8 @@ def improved_algorithm_run():
     clock = pygame.time.Clock()
 
     lift_pos_y = WINDOW_SIZE[1] - lift_height - 10
-    lift_pos_y = 300
-    lift_speed = -10
+    original_lift_speed = lift_speed
+    lift_speed = -lift_speed
     lift_capacity = 0
 
     requests = {}
@@ -363,9 +422,9 @@ def improved_algorithm_run():
         lift_spacing = 0
         for request in list(lift_volume):
             if lift_volume[request]['direction'] == 'up':
-                window.blit(stickman_up_scaled, (lift_pos_x + lift_spacing, lift_pos_y + lift_height - stickman_scaled.get_rect().size[1]))
+                window.blit(stickman_up_scaled, (lift_pos_x + lift_spacing, lift_pos_y + lift_height - stickman_up_scaled.get_rect().size[1]))
             else:
-                window.blit(stickman_down_scaled, (lift_pos_x + lift_spacing, lift_pos_y + lift_height - stickman_scaled.get_rect().size[1]))
+                window.blit(stickman_down_scaled, (lift_pos_x + lift_spacing, lift_pos_y + lift_height - stickman_down_scaled.get_rect().size[1]))
             lift_spacing += 35
 
         pygame.draw.rect(window, COLOUR_MENU_TITLE, [lift_width + (lift_pos_x + lift_width) * 1.5, 0, WINDOW_SIZE[0] - lift_width + (lift_pos_x + lift_width), 150])
@@ -417,11 +476,11 @@ def improved_algorithm_run():
 
 
         if floor_from < floor_to:
-            lift_speed = -10
+            lift_speed = -original_lift_speed
             direction = 'up'
 
         if floor_from > floor_to:
-            lift_speed = 10
+            lift_speed = original_lift_speed
             direction = 'down'
 
         if floor_from == floor_to and not requests:
@@ -430,7 +489,7 @@ def improved_algorithm_run():
 
 
         for floor in range(floors):
-            if (lift_pos_y + lift_height) < WINDOW_SIZE[1] - int(floor * floor_height) + 30 and (lift_pos_y + lift_height) > WINDOW_SIZE[1] - int(floor * floor_height) - 10 - 30:
+            if (lift_pos_y + lift_height) < WINDOW_SIZE[1] - int(floor * floor_height) + 20 and (lift_pos_y + lift_height) > WINDOW_SIZE[1] - int(floor * floor_height) - 10 - 20:
                 current_floor = floor
             elif current_floor == floor:
                 current_floor = None
@@ -444,7 +503,6 @@ def improved_algorithm_run():
         if lift_pos_y + lift_height < floor_height:
             direction = 'down'
 
-        #print(direction, requests_each_floor)
 
         for request in list(requests):
             if (requests[request]['floor_from'] == current_floor and (requests[request]['direction'] == direction or direction == 'none' or lift_capacity == 0) and lift_capacity < 6):
@@ -560,12 +618,22 @@ def main():
                                      window_height=WINDOW_SIZE[1],
                                      window_width=WINDOW_SIZE[0]
                                      )
-
+    """
     settings_menu.add_selector('Number  of  Floors', [('2',2),('3',3),('4',4),('5',5),('6',6),
-                                                      ('7',7),('8',8),('9',9),('10',10)],
+                                                      ('7',7),('8',8),('9',9),('10',10),('11',11),
+                                                      ('12',12),('13',13),('14',14),('15',15),('16',16),
+                                                      ('17',17),('18',18),('19',19),('20',20)],
                                                       onchange=change_floors)
     settings_menu.add_selector('Request  Spawn  Rate', [('1',1), ('2',2),('3',3),('4',4),('5',5)],
                                                         onchange=change_spawn_rate)
+    """
+    settings_menu.add_selector('Number  of  Floors', [('21',21),('22',22),('23',23),('24',24),('25',25),
+                                                      ('26',26),('27',27),('28',28),('29',29),('30',30)],
+                                                      onchange=change_floors)
+    settings_menu.add_selector('Request  Spawn  Rate', [('1',1), ('2',2),('3',3),('4',4),('5',5)],
+                                                        onchange=change_spawn_rate)
+    settings_menu.add_selector('Lift Speed', [('5',5), ('10',10),('15',15),('20',20)],
+                                                        onchange=change_lift_speed)
     settings_menu.add_option('Back', pygameMenu.events.BACK)
     
 

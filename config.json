@@ -1,4 +1,5 @@
 {
-  "floors": 10,
-  "spawn_rate": 3
+  "floors": 28,
+  "spawn_rate": 2,
+  "lift_speed": 20
 }
