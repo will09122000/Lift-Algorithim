@@ -5,6 +5,7 @@ import time
 import random
 import json
 import csv
+import math
 from threading import Timer, Event
 
 # Colours
@@ -142,13 +143,28 @@ def generate_random_requests(floors, spawn_rate):
     global sim_exit
     global request_number
     global requests
+
     floor_from = random.randrange(floors)
     floor_to = random.randrange(floors)
+
+    """
+    # Bias towards requests moving upwards.
+    floor_from = abs(random.randrange(floors) - random.randrange(math.ceil(floors/2)))
+    floor_to = abs(random.randrange(floors) + random.randrange(math.floor(floors/2)))
+    
+    while floor_to >= floors - 1:
+        floor_to = abs(random.randrange(floors) + random.randrange(math.floor(floors/2)))
+
+    while floor_from <= 1:
+        floor_from = abs(random.randrange(floors) - random.randrange(math.ceil(floors/2)))
+    """
 
     # Prevent the two floors from being the same.
     while floor_to == floor_from:
         floor_to = random.randrange(floors)
-    
+        floor_to = abs(random.randrange(floors) + random.randrange(math.floor(floors/2)))
+        
+
     # Declare the direction the request is going.
     if (floor_from - floor_to) < 0:
         direction = 'up'
@@ -289,11 +305,13 @@ def base_algorithm_run():
                 if floor[i] == 'up':
                     window.blit(stickman_up_scaled,
                                 (lift_pos_x + lift_width + 10 + floor_spacing,
-                                 WINDOW_SIZE[1] - int(floor[0]) * floor_height - stickman_up_scaled.get_rect().size[1] - 10))
+                                 WINDOW_SIZE[1] - int(floor[0]) * floor_height - \
+                                 stickman_up_scaled.get_rect().size[1] - 10))
                 else:
                     window.blit(stickman_down_scaled,
                                 (lift_pos_x + lift_width + 10 + floor_spacing,
-                                 WINDOW_SIZE[1] - int(floor[0]) * floor_height - stickman_down_scaled.get_rect().size[1] - 10))
+                                 WINDOW_SIZE[1] - int(floor[0]) * floor_height - \
+                                 stickman_down_scaled.get_rect().size[1] - 10))
                 floor_spacing += 35
 
         # Drawing stickmen in the lift when they are picked up.
@@ -426,12 +444,12 @@ def base_algorithm_run():
 
 def improved_algorithm_run():
     """
-    The improved algorithm wherby the lift starts from the bottom floor. While there are no
+    The improved algorithm whereby the lift starts from the bottom floor. While there are no
     requests on any floor or in the lift, the lift will travel to the middle floor and wait
     there for requests to be in the optimal position pending a new request on a random floor.
-    When a requests spawns and the lift is empty, the lift will travel to the request that has
+    When a request spawns and the lift is empty, the lift will travel to the request that has
     been waiting the longest picking up any requests heading in the same direction as the lift.
-    The lift will then travel to destination floor of that request also picking up any heading
+    The lift will then travel to the destination floor of that request also picking up any heading
     in the same direction as the lift.
     returns: None
     """
@@ -528,11 +546,13 @@ def improved_algorithm_run():
                 if floor[i] == 'up':
                     window.blit(stickman_up_scaled,
                                 (lift_pos_x + lift_width + 10 + floor_spacing,
-                                 WINDOW_SIZE[1] - int(floor[0]) * floor_height - stickman_up_scaled.get_rect().size[1] - 10))
+                                 WINDOW_SIZE[1] - int(floor[0]) * floor_height - \
+                                 stickman_up_scaled.get_rect().size[1] - 10))
                 else:
                     window.blit(stickman_down_scaled,
                                 (lift_pos_x + lift_width + 10 + floor_spacing,
-                                 WINDOW_SIZE[1] - int(floor[0]) * floor_height - stickman_down_scaled.get_rect().size[1] - 10))
+                                 WINDOW_SIZE[1] - int(floor[0]) * floor_height - \
+                                 stickman_down_scaled.get_rect().size[1] - 10))
                 floor_spacing += 35
 
         # Drawing stickmen in the lift when they are picked up.
@@ -843,5 +863,16 @@ def main():
         pygame.display.flip()
 
 
+
 if __name__ == '__main__':
     main()
+    """
+    list = []
+    most = [[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],[9,0],[10,0]]
+    for i in range(1000):
+        list.append(abs(random.randrange(10) - random.randrange(5)))
+    for item in list:
+        most[item][1] += 1
+
+    print(most)
+    """
